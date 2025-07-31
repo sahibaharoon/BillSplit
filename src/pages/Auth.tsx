@@ -187,7 +187,7 @@ const Auth = () => {
               </div>
               <Button 
                 type="submit" 
-                className="w-full h-12 bg-gradient-success hover:shadow-glow shadow-primary text-white font-semibold transition-all duration-300" 
+                className="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-all duration-300 shadow-lg" 
                 disabled={isLoading}
               >
                 {isLoading ? "Sending..." : "Send Reset Link"}
@@ -229,11 +229,11 @@ const Auth = () => {
           <Button 
             onClick={handleGoogleSignIn} 
             variant="outline" 
-            className="w-full h-12 border-2 border-primary/30 bg-gradient-to-r from-primary/10 to-accent/10 hover:from-primary/20 hover:to-accent/20 transition-all duration-300 shadow-lg hover:shadow-primary/20" 
+            className="w-full h-12 border-2 border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-semibold transition-all duration-300 shadow-lg hover:shadow-md" 
             disabled={isGoogleLoading}
           >
-            <Smartphone className="h-5 w-5 mr-2 text-primary" />
-            <span className="bg-gradient-primary bg-clip-text text-transparent font-semibold">
+            <Smartphone className="h-5 w-5 mr-2 text-gray-600" />
+            <span className="font-semibold">
               {isGoogleLoading ? "Connecting..." : "Continue with Google"}
             </span>
           </Button>
@@ -279,7 +279,7 @@ const Auth = () => {
                 <Button 
                   type="submit" 
                   disabled={isLoading} 
-                  className="w-full h-12 bg-gradient-tech hover:shadow-glow shadow-primary text-white font-semibold transition-all duration-300 transform hover:scale-[1.02]"
+                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all duration-300 transform hover:scale-[1.02] shadow-lg"
                 >
                   {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
@@ -318,7 +318,7 @@ const Auth = () => {
                 </div>
                 <Button 
                   type="submit" 
-                  className="w-full h-12 bg-gradient-rainbow hover:shadow-glow shadow-primary text-white font-semibold transition-all duration-300 transform hover:scale-[1.02]" 
+                  className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold transition-all duration-300 transform hover:scale-[1.02] shadow-lg" 
                   disabled={isLoading}
                 >
                   {isLoading ? "Creating account..." : "Create Account"}

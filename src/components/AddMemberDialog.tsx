@@ -138,24 +138,27 @@ export const AddMemberDialog = ({ groupId, onMemberAdded }: AddMemberDialogProps
   const createInviteLink = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`https://qfpnjctvtmapkenuomre.supabase.co/functions/v1/manage-group?action=create-invite`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmcG5qY3R2dG1hcGtlbnVvbXJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4OTgzNzcsImV4cCI6MjA2OTQ3NDM3N30.SkCR8LpXdlAQ-6a0USZ0XCgn60HZ1IbSK4og89-gXQ0'
-        },
-        body: JSON.stringify({ group_id: groupId })
-      });
+      // Generate a simple invite code
+      const inviteCode = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      
+      // Create invite in database
+      const { data: invite, error: inviteError } = await supabase
+        .from('group_invites')
+        .insert({
+          group_id: groupId,
+          invite_code: inviteCode,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+          max_uses: 10
+        })
+        .select()
+        .single();
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create invite');
+      if (inviteError) {
+        console.error('Error creating invite:', inviteError);
+        throw new Error('Failed to create invite link');
       }
 
-      const data = await response.json();
-
-      const link = `${window.location.origin}/join/${data.invite.invite_code}`;
+      const link = `${window.location.origin}/join/${inviteCode}`;
       setInviteLink(link);
       
       toast({

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus } from "lucide-react";
 
@@ -18,20 +19,65 @@ export const CreateGroupDialog = ({ onGroupCreated }: CreateGroupDialogProps) =>
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a group",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('manage-group', {
-        body: { name: name.trim(), description: description.trim() },
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
+      console.log('Creating group with data:', { name: name.trim(), description: description.trim() });
+      console.log('Current user:', user);
+      
+      // Create group directly in database
+      const { data: group, error: groupError } = await supabase
+        .from('groups')
+        .insert({
+          name: name.trim(),
+          description: description.trim() || '',
+          created_by: user.id
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      console.log('Group creation response:', { group, groupError });
+
+      if (groupError) {
+        console.error('Database error:', groupError);
+        throw new Error(groupError.message || 'Failed to create group');
+      }
+
+      if (!group) {
+        throw new Error('No group data returned');
+      }
+
+      // Add creator as admin member
+      const { error: membershipError } = await supabase
+        .from('group_memberships')
+        .insert({
+          group_id: group.id,
+          user_id: user.id,
+          role: 'admin'
+        });
+
+      if (membershipError) {
+        console.error('Membership error:', membershipError);
+        // Clean up the group if membership creation fails
+        await supabase.from('groups').delete().eq('id', group.id);
+        throw new Error('Failed to add you as group admin');
+      }
+
+      console.log('Group and membership created successfully:', group);
 
       toast({
         title: "Success",
@@ -44,9 +90,10 @@ export const CreateGroupDialog = ({ onGroupCreated }: CreateGroupDialogProps) =>
       onGroupCreated?.();
     } catch (error) {
       console.error('Error creating group:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to create group";
       toast({
         title: "Error",
-        description: "Failed to create group",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
