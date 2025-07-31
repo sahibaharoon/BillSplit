@@ -1,21 +1,21 @@
-# 💸 BillSplit — A Smart Bill Splitting App
+# BillSplit — A Smart Bill Splitting App
 
 BillSplit is a modern web application designed to simplify group expense management. Whether it’s a trip with friends, a shared apartment, or a team lunch — effortlessly track, split, and settle shared expenses.
 
 ---
 
-## 🚀 Features
+##  Features
 
-- 🔐 **User Authentication** — Secure sign-up/login using Supabase Auth.
-- 👥 **Group Management** — Create groups, invite members, and manage memberships.
-- ➕ **Expense Tracking** — Add shared expenses within groups and assign who paid for what.
-- ⚖️ **Balance Calculation** — Automatically calculate how much each member owes or is owed.
-- 🔗 **Friend Invites** — Send invite links to add friends directly into groups.
-- ⚡ **Edge Functions** — Supabase Edge Functions handle complex balance calculations for fast and secure computations.
+-  **User Authentication** — Secure sign-up/login using Supabase Auth.
+-  **Group Management** — Create groups, invite members, and manage memberships.
+-  **Expense Tracking** — Add shared expenses within groups and assign who paid for what.
+-  **Balance Calculation** — Automatically calculate how much each member owes or is owed.
+-  **Friend Invites** — Send invite links to add friends directly into groups.
+-  **Edge Functions** — Supabase Edge Functions handle complex balance calculations for fast and secure computations.
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 ### 💻 Frontend
 - **React.js** — Functional, component-based UI.
@@ -35,7 +35,7 @@ BillSplit is a modern web application designed to simplify group expense managem
 
 ---
 
-## 🧩 Database Schema (Supabase)
+## Database Schema (Supabase)
 
 Here are some of the core tables:
 
@@ -82,7 +82,6 @@ Here are some of the core tables:
 
 ## 📁 Project Structure
 
-## 📁 Project Structure
 
 ```bash
 ├── public
