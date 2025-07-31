@@ -1,0 +1,208 @@
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { ArrowRightLeft, DollarSign } from "lucide-react";
+
+interface Group {
+  id: string;
+  name: string;
+}
+
+interface Settlement {
+  from_user: string;
+  to_user: string;
+  amount: number;
+  from_username: string;
+  to_username: string;
+}
+
+interface Balance {
+  user_id: string;
+  balance: number;
+  username: string;
+}
+
+interface SettleDebtsDialogProps {
+  groupId?: string;
+  onSettled?: () => void;
+}
+
+export const SettleDebtsDialog = ({ groupId, onSettled }: SettleDebtsDialogProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState(groupId || "");
+  const [settlements, setSettlements] = useState<Settlement[]>([]);
+  const [balances, setBalances] = useState<Balance[]>([]);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchGroups();
+    }
+  }, [isOpen]);
+
+  const fetchGroups = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('groups')
+        .select('id, name')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setGroups(data || []);
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+    }
+  };
+
+  const calculateSettlements = async () => {
+    if (!selectedGroup) return;
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('calculate-settlements', {
+        body: { group_id: selectedGroup }
+      });
+
+      if (error) throw error;
+
+      setSettlements(data.settlements || []);
+      setBalances(data.balances || []);
+    } catch (error) {
+      console.error('Error calculating settlements:', error);
+      toast({
+        title: "Error",
+        description: "Failed to calculate settlements",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="gap-2">
+          <ArrowRightLeft className="h-4 w-4" />
+          Settle Debts
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Settle Group Debts</DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          {!groupId && (
+            <div className="space-y-2">
+              <label htmlFor="group" className="text-sm font-medium">
+                Select Group
+              </label>
+              <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a group to settle" />
+                </SelectTrigger>
+                <SelectContent>
+                  {groups.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {selectedGroup && (
+            <Button 
+              onClick={calculateSettlements} 
+              disabled={isLoading}
+              className="w-full"
+            >
+              {isLoading ? "Calculating..." : "Calculate Settlements"}
+            </Button>
+          )}
+
+          {balances.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold">Current Balances</h3>
+              <div className="grid gap-2">
+                {balances.map((balance) => (
+                  <div 
+                    key={balance.user_id} 
+                    className={`flex justify-between items-center p-3 rounded-lg border ${
+                      balance.balance > 0 
+                        ? 'bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800' 
+                        : balance.balance < 0
+                        ? 'bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800'
+                        : 'bg-gray-50 border-gray-200 dark:bg-gray-950 dark:border-gray-800'
+                    }`}
+                  >
+                    <span className="font-medium">{balance.username}</span>
+                    <span className={`font-semibold ${
+                      balance.balance > 0 ? 'text-green-600 dark:text-green-400' : 
+                      balance.balance < 0 ? 'text-red-600 dark:text-red-400' : 
+                      'text-gray-600 dark:text-gray-400'
+                    }`}>
+                      {balance.balance > 0 ? '+' : ''}{formatCurrency(balance.balance)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {settlements.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold">Suggested Settlements</h3>
+              <div className="text-sm text-muted-foreground">
+                {settlements.length} transaction{settlements.length !== 1 ? 's' : ''} needed to settle all debts
+              </div>
+              <div className="space-y-2">
+                {settlements.map((settlement, index) => (
+                  <div 
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg"
+                  >
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      <span className="font-medium">{settlement.from_username}</span>
+                      <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">{settlement.to_username}</span>
+                    </div>
+                    <span className="font-semibold text-blue-600 dark:text-blue-400">
+                      {formatCurrency(settlement.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {settlements.length === 0 && balances.length > 0 && (
+            <div className="text-center p-6 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+              <div className="text-green-600 dark:text-green-400 font-medium">
+                🎉 All settled up!
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                No outstanding debts in this group
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};

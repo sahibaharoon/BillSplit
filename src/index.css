@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 230 100% 98%;
+    --foreground: 230 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 230 20% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 230 20% 10%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 262 100% 70%;
+    --secondary: 230 20% 95%;
+    --secondary-foreground: 230 20% 15%;
+    --muted: 230 20% 96%;
+    --muted-foreground: 230 10% 45%;
+    --accent: 290 100% 65%;
+    --accent-foreground: 0 0% 100%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 230 20% 90%;
+    --input: 230 20% 94%;
+    --ring: 262 83% 58%;
+    --radius: 0.75rem;
+    
+    /* Vibrant gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(262 83% 58%), hsl(290 100% 65%));
+    --gradient-accent: linear-gradient(135deg, hsl(290 100% 65%), hsl(199 89% 48%));
+    --gradient-tech: linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(290 100% 65%) 50%, hsl(199 89% 48%) 100%);
+    --gradient-cyber: linear-gradient(135deg, hsl(290 100% 65%) 0%, hsl(262 83% 58%) 100%);
+    --gradient-rainbow: linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(290 100% 65%) 25%, hsl(199 89% 48%) 50%, hsl(142 76% 36%) 75%, hsl(38 92% 50%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(142 76% 36%), hsl(199 89% 48%));
+    --gradient-warning: linear-gradient(135deg, hsl(38 92% 50%), hsl(290 100% 65%));
+    
+    /* Shadows */
+    --shadow-primary: 0 4px 20px -2px hsl(var(--primary) / 0.3);
+    --shadow-glow: 0 0 40px hsl(var(--primary-glow) / 0.4);
+    --shadow-card: 0 4px 6px -1px hsl(var(--foreground) / 0.1), 0 2px 4px -1px hsl(var(--foreground) / 0.06);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 230 20% 6%;
+    --foreground: 230 20% 95%;
+    --card: 230 20% 8%;
+    --card-foreground: 230 20% 95%;
+    --popover: 230 20% 8%;
+    --popover-foreground: 230 20% 95%;
+    --primary: 262 100% 70%;
+    --primary-foreground: 230 20% 10%;
+    --primary-glow: 262 100% 80%;
+    --secondary: 230 20% 12%;
+    --secondary-foreground: 230 20% 85%;
+    --muted: 230 20% 12%;
+    --muted-foreground: 230 10% 55%;
+    --accent: 300 100% 75%;
+    --accent-foreground: 230 20% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 230 20% 15%;
+    --input: 230 20% 12%;
+    --ring: 262 100% 70%;
+    
+    /* Dark mode gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--primary)));
+    --gradient-tech: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-cyber: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    
+    /* Dark shadows */
+    --shadow-primary: 0 4px 20px -2px hsl(var(--primary) / 0.5);
+    --shadow-glow: 0 0 40px hsl(var(--primary-glow) / 0.3);
+    --shadow-card: 0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer components {
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .gradient-accent {
+    background: var(--gradient-accent);
+  }
+  
+  .gradient-tech {
+    background: var(--gradient-tech);
+  }
+  
+  .gradient-cyber {
+    background: var(--gradient-cyber);
+  }
+  
+  .shadow-primary {
+    box-shadow: var(--shadow-primary);
+  }
+  
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  
+  .tech-border {
+    border: 1px solid hsl(var(--border));
+    background: linear-gradient(135deg, 
+      hsl(var(--card)) 0%, 
+      hsl(var(--muted)) 50%, 
+      hsl(var(--card)) 100%
+    );
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
