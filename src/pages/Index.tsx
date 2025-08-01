@@ -40,6 +40,8 @@ const Index = () => {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
+
+
   const handleDataUpdate = () => {
     refetchGroups();
     refetchExpenses();
@@ -57,6 +59,10 @@ const Index = () => {
       day: 'numeric'
     });
   };
+
+
+
+  
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/50 to-background">
         <div className="text-center space-y-4">
@@ -68,26 +74,33 @@ const Index = () => {
   if (!user) {
     return null;
   }
-  return <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
-      <div className="max-w-7xl mx-auto p-6">
+  return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-pink-900/20 p-4 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-gradient-to-r from-pink-400 to-orange-400 rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-pulse delay-500"></div>
+      </div>
+      
+      <div className="w-full max-w-7xl backdrop-blur-xl bg-white/95 dark:bg-gray-900/95 border-2 border-purple-200 dark:border-purple-800 shadow-2xl relative z-10 rounded-2xl p-6">
         {/* Header */}
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 space-y-4 sm:space-y-0">
           <div className="space-y-1">
-            <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              SplitWise Pro
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+              BillSplit
             </h1>
-            <p className="text-muted-foreground">
-              Welcome back, <span className="font-medium text-foreground">{user.email}</span>
+            <p className="text-gray-600 dark:text-gray-300">
+              Welcome back, <span className="font-medium text-gray-800 dark:text-gray-200">{user.email}</span>
             </p>
           </div>
-          <Button onClick={signOut} variant="outline" className="tech-border">
+          <Button onClick={signOut} variant="outline" className="border-2 border-purple-300 dark:border-purple-700 bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-900/20 dark:hover:to-pink-900/20 transition-all duration-300 shadow-lg hover:shadow-purple-200 dark:hover:shadow-purple-800 text-gray-700 dark:text-gray-200 font-semibold">
             Sign Out
           </Button>
         </header>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="tech-border shadow-card hover:shadow-primary transition-all duration-300">
+          <Card className="border-2 border-purple-200 dark:border-purple-800 shadow-xl backdrop-blur-sm bg-white/95 dark:bg-gray-900/95 hover:shadow-purple-200 dark:hover:shadow-purple-800 transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">My Groups</CardTitle>
               <Users className="h-4 w-4 text-primary" />
@@ -120,7 +133,7 @@ const Index = () => {
 
         {/* Quick Actions */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4 text-foreground">Quick Actions</h2>
+          <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Quick Actions</h2>
           <div className="flex flex-wrap gap-4">
             <CreateGroupDialog onGroupCreated={handleDataUpdate} />
             <AddExpenseDialog onExpenseAdded={handleDataUpdate} />
@@ -135,7 +148,7 @@ const Index = () => {
 
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="tech-border shadow-card">
+          <Card className="border-2 border-purple-200 dark:border-purple-800 shadow-xl backdrop-blur-sm bg-white/95 dark:bg-gray-900/95">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-primary" />
@@ -149,7 +162,7 @@ const Index = () => {
               {groupsLoading ? <div className="space-y-3">
                   {[1, 2, 3].map(i => <div key={i} className="h-16 bg-muted rounded animate-pulse" />)}
                 </div> : groups.length > 0 ? <div className="space-y-3">
-                  {groups.slice(0, 3).map(group => <div key={group.id} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => navigate(`/group/${group.id}`)}>
+                  {groups.slice(0, 3).map(group => <div key={group.id} className="flex items-center justify-between p-3 rounded-lg border border-purple-200 dark:border-purple-800 bg-white/50 dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors cursor-pointer" onClick={() => navigate(`/group/${group.id}`)}>
                       <div className="flex-1">
                         <h3 className="font-medium truncate">{group.name}</h3>
                         <p className="text-sm text-muted-foreground truncate">
@@ -171,7 +184,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className="tech-border shadow-card">
+          <Card className="border-2 border-purple-200 dark:border-purple-800 shadow-xl backdrop-blur-sm bg-white/95 dark:bg-gray-900/95">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5 text-primary" />
@@ -185,7 +198,7 @@ const Index = () => {
               {expensesLoading ? <div className="space-y-3">
                   {[1, 2, 3].map(i => <div key={i} className="h-16 bg-muted rounded animate-pulse" />)}
                 </div> : expenses.length > 0 ? <div className="space-y-3">
-                  {expenses.slice(0, 3).map(expense => <div key={expense.id} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+                  {expenses.slice(0, 3).map(expense => <div key={expense.id} className="flex items-center justify-between p-3 rounded-lg border border-purple-200 dark:border-purple-800 bg-white/50 dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors">
                       <div className="flex-1">
                         <h3 className="font-medium truncate">{expense.description}</h3>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">

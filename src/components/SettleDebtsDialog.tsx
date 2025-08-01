@@ -19,12 +19,6 @@ interface Settlement {
   to_username: string;
 }
 
-interface Balance {
-  user_id: string;
-  balance: number;
-  username: string;
-}
-
 interface SettleDebtsDialogProps {
   groupId?: string;
   onSettled?: () => void;
@@ -36,7 +30,6 @@ export const SettleDebtsDialog = ({ groupId, onSettled }: SettleDebtsDialogProps
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroup, setSelectedGroup] = useState(groupId || "");
   const [settlements, setSettlements] = useState<Settlement[]>([]);
-  const [balances, setBalances] = useState<Balance[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -48,14 +41,14 @@ export const SettleDebtsDialog = ({ groupId, onSettled }: SettleDebtsDialogProps
   const fetchGroups = async () => {
     try {
       const { data, error } = await supabase
-        .from('groups')
-        .select('id, name')
-        .order('created_at', { ascending: false });
+        .from("groups")
+        .select("id, name")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setGroups(data || []);
     } catch (error) {
-      console.error('Error fetching groups:', error);
+      console.error("Error fetching groups:", error);
     }
   };
 
@@ -64,16 +57,15 @@ export const SettleDebtsDialog = ({ groupId, onSettled }: SettleDebtsDialogProps
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('calculate-settlements', {
-        body: { group_id: selectedGroup }
+      const { data, error } = await supabase.functions.invoke("calculate-settlements", {
+        body: { group_id: selectedGroup },
       });
 
       if (error) throw error;
 
       setSettlements(data.settlements || []);
-      setBalances(data.balances || []);
     } catch (error) {
-      console.error('Error calculating settlements:', error);
+      console.error("Error calculating settlements:", error);
       toast({
         title: "Error",
         description: "Failed to calculate settlements",
@@ -84,10 +76,40 @@ export const SettleDebtsDialog = ({ groupId, onSettled }: SettleDebtsDialogProps
     }
   };
 
+  const handleSettleUp = async () => {
+    if (!selectedGroup) return;
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.functions.invoke("reset-settlements", {
+        body: { group_id: selectedGroup },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Settled!",
+        description: "All debts have been settled for this group.",
+      });
+
+      setSettlements([]);
+      if (onSettled) onSettled();
+    } catch (error) {
+      console.error("Error settling debts:", error);
+      toast({
+        title: "Error",
+        description: "Could not settle debts.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
     }).format(amount);
   };
 
@@ -103,7 +125,7 @@ export const SettleDebtsDialog = ({ groupId, onSettled }: SettleDebtsDialogProps
         <DialogHeader>
           <DialogTitle>Settle Group Debts</DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           {!groupId && (
             <div className="space-y-2">
@@ -126,76 +148,51 @@ export const SettleDebtsDialog = ({ groupId, onSettled }: SettleDebtsDialogProps
           )}
 
           {selectedGroup && (
-            <Button 
-              onClick={calculateSettlements} 
-              disabled={isLoading}
-              className="w-full"
-            >
+            <Button onClick={calculateSettlements} disabled={isLoading} className="w-full">
               {isLoading ? "Calculating..." : "Calculate Settlements"}
             </Button>
           )}
 
-          {balances.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold">Current Balances</h3>
-              <div className="grid gap-2">
-                {balances.map((balance) => (
-                  <div 
-                    key={balance.user_id} 
-                    className={`flex justify-between items-center p-3 rounded-lg border ${
-                      balance.balance > 0 
-                        ? 'bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800' 
-                        : balance.balance < 0
-                        ? 'bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800'
-                        : 'bg-gray-50 border-gray-200 dark:bg-gray-950 dark:border-gray-800'
-                    }`}
-                  >
-                    <span className="font-medium">{balance.username}</span>
-                    <span className={`font-semibold ${
-                      balance.balance > 0 ? 'text-green-600 dark:text-green-400' : 
-                      balance.balance < 0 ? 'text-red-600 dark:text-red-400' : 
-                      'text-gray-600 dark:text-gray-400'
-                    }`}>
-                      {balance.balance > 0 ? '+' : ''}{formatCurrency(balance.balance)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {settlements.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold">Suggested Settlements</h3>
-              <div className="text-sm text-muted-foreground">
-                {settlements.length} transaction{settlements.length !== 1 ? 's' : ''} needed to settle all debts
-              </div>
-              <div className="space-y-2">
-                {settlements.map((settlement, index) => (
-                  <div 
-                    key={index}
-                    className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg"
-                  >
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      <span className="font-medium">{settlement.from_username}</span>
-                      <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{settlement.to_username}</span>
+            <>
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold">Suggested Settlements</h3>
+                <div className="text-sm text-muted-foreground">
+                  {settlements.length} transaction{settlements.length !== 1 ? "s" : ""} needed to settle all debts
+                </div>
+                <div className="space-y-2">
+                  {settlements.map((settlement, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg"
+                    >
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <span className="font-medium">{settlement.from_username}</span>
+                        <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{settlement.to_username}</span>
+                      </div>
+                      <span className="font-semibold text-blue-600 dark:text-blue-400">
+                        {formatCurrency(settlement.amount)}
+                      </span>
                     </div>
-                    <span className="font-semibold text-blue-600 dark:text-blue-400">
-                      {formatCurrency(settlement.amount)}
-                    </span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+
+              <Button
+                onClick={handleSettleUp}
+                disabled={isLoading}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+              >
+                {isLoading ? "Settling Up..." : "Settle Up"}
+              </Button>
+            </>
           )}
 
-          {settlements.length === 0 && balances.length > 0 && (
+          {settlements.length === 0 && selectedGroup && (
             <div className="text-center p-6 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
-              <div className="text-green-600 dark:text-green-400 font-medium">
-                🎉 All settled up!
-              </div>
+              <div className="text-green-600 dark:text-green-400 font-medium">🎉 All settled up!</div>
               <div className="text-sm text-muted-foreground mt-1">
                 No outstanding debts in this group
               </div>

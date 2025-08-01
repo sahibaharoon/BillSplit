@@ -1,5 +1,4 @@
--- Fix RLS policies to avoid infinite recursion
--- First, drop all existing policies
+
 DROP POLICY IF EXISTS "Users can view memberships for their groups" ON public.group_memberships;
 DROP POLICY IF EXISTS "Group creators can add members" ON public.group_memberships;
 DROP POLICY IF EXISTS "Users can view their own memberships" ON public.group_memberships;
