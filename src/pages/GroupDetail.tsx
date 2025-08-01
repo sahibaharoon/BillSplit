@@ -414,7 +414,10 @@ const GroupDetail = () => {
           <TabsContent value="settlements" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Debt Settlements</h2>
-              <SettleDebtsDialog />
+              <SettleDebtsDialog 
+                groupId={group.id} 
+                onSettled={handleDataUpdate} 
+              />
             </div>
 
             <Card className="tech-border shadow-card">
@@ -424,7 +427,10 @@ const GroupDetail = () => {
                 <p className="text-muted-foreground mb-6">
                   Group-specific settlements will be available in the next update
                 </p>
-                <SettleDebtsDialog />
+                <SettleDebtsDialog 
+                  groupId={group.id} 
+                  onSettled={handleDataUpdate} 
+                />
               </CardContent>
             </Card>
           </TabsContent>

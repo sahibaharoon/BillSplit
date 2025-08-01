@@ -154,10 +154,10 @@ const Dashboard = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => navigate("/")} variant="outline" className="border-2 border-purple-300 dark:border-purple-700 bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-900/20 dark:hover:to-pink-900/20 transition-all duration-300 shadow-lg hover:shadow-purple-200 dark:hover:shadow-purple-800 text-gray-700 dark:text-gray-200 font-semibold">
+            <Button onClick={() => navigate("/")} variant="outline" className="">
               Back to Home
             </Button>
-            <Button onClick={signOut} variant="outline" className="border-2 border-purple-300 dark:border-purple-700 bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-900/20 dark:hover:to-pink-900/20 transition-all duration-300 shadow-lg hover:shadow-purple-200 dark:hover:shadow-purple-800 text-gray-700 dark:text-gray-200 font-semibold">
+            <Button onClick={signOut} variant="outline" className="">
               Sign Out
             </Button>
           </div>
@@ -418,6 +418,7 @@ const Dashboard = () => {
                   </div>
                   <div className="flex-1">
                     <Label className="text-sm font-medium">Profile Picture</Label>
+
                   </div>
                 </div>
 

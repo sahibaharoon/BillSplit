@@ -93,7 +93,7 @@ const Index = () => {
               Welcome back, <span className="font-medium text-gray-800 dark:text-gray-200">{user.email}</span>
             </p>
           </div>
-          <Button onClick={signOut} variant="outline" className="border-2 border-purple-300 dark:border-purple-700 bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-900/20 dark:hover:to-pink-900/20 transition-all duration-300 shadow-lg hover:shadow-purple-200 dark:hover:shadow-purple-800 text-gray-700 dark:text-gray-200 font-semibold">
+          <Button onClick={signOut} variant="outline" className="">
             Sign Out
           </Button>
         </header>
