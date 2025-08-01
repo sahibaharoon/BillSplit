@@ -239,7 +239,12 @@ const Auth = () => {
           <Button 
             onClick={handleGoogleSignIn} 
             variant="outline" 
-            className="w-full h-14 border-2 border-purple-300 dark:border-purple-700 bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-900/20 dark:hover:to-pink-900/20 transition-all duration-300 shadow-lg hover:shadow-purple-200 dark:hover:shadow-purple-800 text-gray-700 dark:text-gray-200 font-semibold" 
+            className="w-full h-14 border-2 border-purple-300 dark:border-purple-700 
+    bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 
+    hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-900/20 dark:hover:to-pink-900/20 
+    transition-all duration-300 shadow-lg hover:shadow-purple-200 dark:hover:shadow-purple-800 
+    text-gray-700 dark:text-gray-200 font-semibold 
+    hover:text-black dark:hover:text-white" 
             disabled={isGoogleLoading}
           >
             <Smartphone className="h-5 w-5 mr-3 text-purple-600 dark:text-purple-400" />

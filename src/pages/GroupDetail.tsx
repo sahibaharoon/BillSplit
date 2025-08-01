@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddExpenseDialog } from "@/components/AddExpenseDialog";
@@ -17,8 +17,33 @@ import {
   TrendingUp, 
   Calendar,
   User,
-  IndianRupee
+  IndianRupee,
+  Divide,
+  Coins
 } from "lucide-react";
+
+// New interface for the expense splits
+interface ExpenseSplit {
+  user_id: string;
+  amount: number;
+  profiles: {
+    username: string;
+  };
+}
+
+// Updated Expense interface to include the splits
+interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  category: string;
+  paid_by: string;
+  profiles: {
+    username: string;
+  };
+  expense_splits: ExpenseSplit[]; // Added the splits
+}
 
 interface Group {
   id: string;
@@ -37,18 +62,6 @@ interface Member {
     username: string;
     email: string;
     full_name: string;
-  };
-}
-
-interface Expense {
-  id: string;
-  description: string;
-  amount: number;
-  date: string;
-  category: string;
-  paid_by: string;
-  profiles: {
-    username: string;
   };
 }
 
@@ -109,13 +122,20 @@ const GroupDetail = () => {
       if (membersError) throw membersError;
       setMembers(membersData || []);
 
-      // Fetch expenses
+      // Fetch expenses and nested splits
       const { data: expensesData, error: expensesError } = await supabase
         .from('expenses')
         .select(`
           *,
           profiles (
             username
+          ),
+          expense_splits (
+            user_id,
+            amount,
+            profiles (
+              username
+            )
           )
         `)
         .eq('group_id', groupId)
@@ -205,8 +225,8 @@ const GroupDetail = () => {
                 {group.name}
               </h1>
             </div>
-            <p className="text-muted-foreground ml-11">
-              {group.description || "No description"}
+            <p className="text-xl font-bold text-gray-800 dark:text-gray-100 ml-11">
+              {group.name || "No description"}
             </p>
           </div>
           <div className="flex gap-2">
@@ -285,23 +305,15 @@ const GroupDetail = () => {
 
           {/* Expenses Tab */}
           <TabsContent value="expenses" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Group Expenses</h2>
-              <AddExpenseDialog 
-                groupId={group.id}
-                onExpenseAdded={handleDataUpdate} 
-              />
-            </div>
-
             {expenses.length > 0 ? (
               <div className="space-y-4">
                 {expenses.map((expense) => (
                   <Card key={expense.id} className="tech-border shadow-card hover:shadow-primary transition-all duration-300">
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
+                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
+                        <div className="flex-1 space-y-1">
                           <h3 className="font-semibold text-lg">{expense.description}</h3>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <User className="h-3 w-3" />
                               Paid by {expense.profiles?.username}
@@ -315,10 +327,30 @@ const GroupDetail = () => {
                             </Badge>
                           </div>
                         </div>
-                        <div className="text-right">
+                        <div className="mt-4 md:mt-0 text-right">
                           <div className="text-2xl font-bold text-primary">
                             {formatCurrency(expense.amount)}
                           </div>
+                        </div>
+                      </div>
+                      
+                      {/* Expense Split Details */}
+                      <div className="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-800">
+                        <h4 className="font-semibold text-sm mb-2 text-muted-foreground flex items-center gap-2">
+                          <Divide className="h-4 w-4" /> Split Details
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-foreground">
+                          {expense.expense_splits.map((split) => (
+                            <div key={split.user_id} className="flex justify-between items-center bg-secondary/30 rounded-md p-2">
+                              <span className="flex items-center gap-2 font-medium">
+                                <Coins className="h-4 w-4 text-muted-foreground" />
+                                {split.profiles?.username} owes:
+                              </span>
+                              <span className="font-semibold text-primary">
+                                {formatCurrency(split.amount)}
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </CardContent>

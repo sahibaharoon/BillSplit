@@ -30,11 +30,21 @@ export const SettleDebtsDialog = ({ groupId, onSettled }: SettleDebtsDialogProps
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroup, setSelectedGroup] = useState(groupId || "");
   const [settlements, setSettlements] = useState<Settlement[]>([]);
+  // New state to track if settlements have been calculated
+  const [isCalculated, setIsCalculated] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
       fetchGroups();
+    }
+  }, [isOpen]);
+
+  // Reset the component state when the dialog is closed or group changes
+  useEffect(() => {
+    if (!isOpen) {
+      setSettlements([]);
+      setIsCalculated(false);
     }
   }, [isOpen]);
 
@@ -56,6 +66,7 @@ export const SettleDebtsDialog = ({ groupId, onSettled }: SettleDebtsDialogProps
     if (!selectedGroup) return;
 
     setIsLoading(true);
+    setIsCalculated(false); // Reset calculation status before new calculation
     try {
       const { data, error } = await supabase.functions.invoke("calculate-settlements", {
         body: { group_id: selectedGroup },
@@ -64,6 +75,7 @@ export const SettleDebtsDialog = ({ groupId, onSettled }: SettleDebtsDialogProps
       if (error) throw error;
 
       setSettlements(data.settlements || []);
+      setIsCalculated(true); // Mark as calculated on success
     } catch (error) {
       console.error("Error calculating settlements:", error);
       toast({
@@ -71,6 +83,8 @@ export const SettleDebtsDialog = ({ groupId, onSettled }: SettleDebtsDialogProps
         description: "Failed to calculate settlements",
         variant: "destructive",
       });
+      setSettlements([]);
+      setIsCalculated(true);
     } finally {
       setIsLoading(false);
     }
@@ -81,6 +95,7 @@ export const SettleDebtsDialog = ({ groupId, onSettled }: SettleDebtsDialogProps
 
     setIsLoading(true);
     try {
+      // This function call is assumed to delete all expenses and splits for the group
       const { error } = await supabase.functions.invoke("reset-settlements", {
         body: { group_id: selectedGroup },
       });
@@ -89,10 +104,15 @@ export const SettleDebtsDialog = ({ groupId, onSettled }: SettleDebtsDialogProps
 
       toast({
         title: "Settled!",
-        description: "All debts have been settled for this group.",
+        description: "All debts have been settled and expenses cleared for this group.",
       });
 
+      // Reset local state and close the dialog
       setSettlements([]);
+      setIsCalculated(false);
+      setIsOpen(false);
+      
+      // Trigger a data refresh in the parent component
       if (onSettled) onSettled();
     } catch (error) {
       console.error("Error settling debts:", error);
@@ -107,9 +127,9 @@ export const SettleDebtsDialog = ({ groupId, onSettled }: SettleDebtsDialogProps
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency: "USD",
+      currency: "INR",
     }).format(amount);
   };
 
@@ -153,6 +173,7 @@ export const SettleDebtsDialog = ({ groupId, onSettled }: SettleDebtsDialogProps
             </Button>
           )}
 
+          {/* Show settlements only if they exist */}
           {settlements.length > 0 && (
             <>
               <div className="space-y-3">
@@ -190,7 +211,8 @@ export const SettleDebtsDialog = ({ groupId, onSettled }: SettleDebtsDialogProps
             </>
           )}
 
-          {settlements.length === 0 && selectedGroup && (
+          {/* Show the "All settled up!" message only after calculation and if no settlements are found */}
+          {isCalculated && settlements.length === 0 && selectedGroup && (
             <div className="text-center p-6 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
               <div className="text-green-600 dark:text-green-400 font-medium">🎉 All settled up!</div>
               <div className="text-sm text-muted-foreground mt-1">
