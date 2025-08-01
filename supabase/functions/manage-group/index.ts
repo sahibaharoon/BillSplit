@@ -1,412 +1,199 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-interface CreateGroupRequest {
-  name: string;
-  description?: string;
-}
-
-interface AddMemberRequest {
-  group_id: string;
-  email?: string;
-  username?: string;
-}
-
-interface JoinGroupRequest {
-  invite_code: string;
-}
-
-interface CreateInviteRequest {
-  group_id: string;
-  max_uses?: number;
-}
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    });
   }
 
+  const body = await req.json();
+  const { action, group_name, group_id, email, username, user_id } = body;
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return new Response("Missing auth header", { status: 401 });
+  }
+
+  const jwt = authHeader.replace("Bearer ", "");
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(jwt);
+  if (authError || !user) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  const findUserId = async () => {
+    if (user_id) return user_id;
+    if (email) {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("email", email)
+        .single();
+      if (error || !data) throw new Error("User not found by email");
+      return data.user_id;
+    } else if (username) {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("username", username)
+        .single();
+      if (error || !data) throw new Error("User not found by username");
+      return data.user_id;
+    }
+    throw new Error("No identifier provided");
+  };
+
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
-    
-    // Set the auth context for RLS
-    await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const url = new URL(req.url);
-    const queryAction = url.searchParams.get('action');
-
-    if (req.method === 'POST') {
-      const body = await req.json();
-      const action = queryAction || body.action;
-
-      if (action === 'create') {
-        // Create new group
-        const { name, description } = body;
-
-        const { data: group, error: groupError } = await supabase
-          .from('groups')
-          .insert({
-            name,
-            description: description || '',
-            created_by: user.id
-          })
-          .select()
-          .single();
-
-        if (groupError) {
-          console.error('Error creating group:', groupError);
-          return new Response(JSON.stringify({ error: 'Failed to create group' }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        // Add creator as admin member
-        const { error: membershipError } = await supabase
-          .from('group_memberships')
-          .insert({
-            group_id: group.id,
-            user_id: user.id,
-            role: 'admin'
-          });
-
-        if (membershipError) {
-          console.error('Error adding creator as member:', membershipError);
-          await supabase.from('groups').delete().eq('id', group.id);
-          return new Response(JSON.stringify({ error: 'Failed to add creator as member' }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        return new Response(
-          JSON.stringify({
-            message: 'Group created successfully',
-            group
-          }),
-          {
-            status: 201,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-
-      } else if (action === 'add-member') {
-        // Add member to group
-        const { group_id, username, email } = body;
-
-        // Verify user is admin of the group
-        const { data: membership, error: membershipError } = await supabase
-          .from('group_memberships')
-          .select('*')
-          .eq('group_id', group_id)
-          .eq('user_id', user.id)
-          .eq('role', 'admin')
-          .single();
-
-        if (membershipError) {
-          console.error('Error checking membership:', membershipError);
-          return new Response(JSON.stringify({ error: 'Error checking group permissions' }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        if (!membership) {
-          return new Response(JSON.stringify({ error: 'Not an admin of this group' }), {
-            status: 403,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        // Find user by email or username
-        let targetUser;
-        if (email) {
-          const { data, error: profileError } = await supabase
-            .from('profiles')
-            .select('user_id')
-            .eq('email', email)
-            .single();
-          
-          if (profileError) {
-            console.error('Error finding user profile:', profileError);
-            return new Response(JSON.stringify({ error: 'Error finding user profile' }), {
-              status: 500,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-          targetUser = data;
-        } else if (username) {
-          const { data, error: profileError } = await supabase
-            .from('profiles')
-            .select('user_id')
-            .eq('username', username)
-            .single();
-          
-          if (profileError) {
-            console.error('Error finding user profile:', profileError);
-            return new Response(JSON.stringify({ error: 'Error finding user profile' }), {
-              status: 500,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-          targetUser = data;
-        }
-
-        if (!targetUser) {
-          return new Response(JSON.stringify({ error: 'User not found' }), {
-            status: 404,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        // Add user to group
-        const { error: addError } = await supabase
-          .from('group_memberships')
-          .insert({
-            group_id,
-            user_id: targetUser.user_id,
-            role: 'member'
-          });
-
-        if (addError) {
-          if (addError.code === '23505') {
-            return new Response(JSON.stringify({ error: 'User is already a member of this group' }), {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-          console.error('Error adding member:', addError);
-          return new Response(JSON.stringify({ error: 'Failed to add member' }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        return new Response(
-          JSON.stringify({ message: 'Member added successfully' }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-
-      } else if (action === 'create-invite') {
-        // Create invite link
-        const { group_id, max_uses } = body;
-
-        // Verify user is admin
-        const { data: membership } = await supabase
-          .from('group_memberships')
-          .select('*')
-          .eq('group_id', group_id)
-          .eq('user_id', user.id)
-          .eq('role', 'admin')
-          .single();
-
-        if (!membership) {
-          return new Response(JSON.stringify({ error: 'Not an admin of this group' }), {
-            status: 403,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        // Generate unique invite code
-        const inviteCode = crypto.randomUUID();
-        
-        const { data: invite, error: inviteError } = await supabase
-          .from('group_invites')
-          .insert({
-            group_id,
-            created_by: user.id,
-            max_uses: max_uses || null,
-            invite_code: inviteCode,
-            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
-          })
-          .select()
-          .single();
-
-        if (inviteError) {
-          return new Response(JSON.stringify({ error: 'Failed to create invite' }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        return new Response(
-          JSON.stringify({ invite }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-
-      } else if (action === 'join') {
-        // Join group via invite code
-        const { invite_code } = body;
-
-        const { data: invite } = await supabase
-          .from('group_invites')
-          .select('*')
-          .eq('invite_code', invite_code)
-          .gt('expires_at', new Date().toISOString())
-          .single();
-
-        if (!invite || (invite.max_uses && invite.current_uses >= invite.max_uses)) {
-          return new Response(JSON.stringify({ error: 'Invalid or expired invite' }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        // Add user to group
-        const { error: addError } = await supabase
-          .from('group_memberships')
-          .insert({
-            group_id: invite.group_id,
-            user_id: user.id,
-            role: 'member'
-          });
-
-        if (addError) {
-          if (addError.code === '23505') {
-            return new Response(JSON.stringify({ error: 'Already a member of this group' }), {
-              status: 400,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-          return new Response(JSON.stringify({ error: 'Failed to join group' }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        // Update invite usage
-        await supabase
-          .from('group_invites')
-          .update({ current_uses: invite.current_uses + 1 })
-          .eq('id', invite.id);
-
-        return new Response(
-          JSON.stringify({ message: 'Successfully joined group' }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    } else if (req.method === 'DELETE') {
-      // Remove member from group or delete group
-      const group_id = url.searchParams.get('group_id');
-      const member_user_id = url.searchParams.get('member_user_id');
-
-      if (!group_id) {
-        return new Response(JSON.stringify({ error: 'group_id is required' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // Verify user is admin of the group
-      const { data: membership } = await supabase
-        .from('group_memberships')
-        .select('*')
-        .eq('group_id', group_id)
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
+    if (action === "create") {
+      const { data, error } = await supabase
+        .from("groups")
+        .insert({ name: group_name, created_by: user.id })
+        .select()
         .single();
 
-      if (!membership) {
-        return new Response(JSON.stringify({ error: 'Not an admin of this group' }), {
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      if (error) throw error;
+
+      const { error: memberError } = await supabase
+        .from("group_memberships")
+        .insert({
+          group_id: data.id,
+          user_id: user.id,
+          role: 'member'
         });
+
+      if (memberError) {
+        await supabase.from("groups").delete().eq("id", data.id);
+        throw memberError;
       }
 
-      if (member_user_id) {
-        // Remove specific member
-        const { error: removeError } = await supabase
-          .from('group_memberships')
-          .delete()
-          .eq('group_id', group_id)
-          .eq('user_id', member_user_id);
-
-        if (removeError) {
-          console.error('Error removing member:', removeError);
-          return new Response(JSON.stringify({ error: 'Failed to remove member' }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        return new Response(
-          JSON.stringify({ message: 'Member removed successfully' }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      } else {
-        // Delete entire group
-        const { error: deleteError } = await supabase
-          .from('groups')
-          .delete()
-          .eq('id', group_id);
-
-        if (deleteError) {
-          console.error('Error deleting group:', deleteError);
-          return new Response(JSON.stringify({ error: 'Failed to delete group' }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        return new Response(
-          JSON.stringify({ message: 'Group deleted successfully' }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
-    } else {
-      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-        status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      return new Response(JSON.stringify({ group: data }), {
+        headers: { "Content-Type": "application/json" },
       });
     }
 
-  } catch (error) {
-    console.error('Error in manage-group function:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    if (action === "add-member") {
+      const targetUserId = await findUserId();
+
+      // Check if the current user is a member of the group
+      const { data: currentMembership, error: membershipCheckError } = await supabase
+        .from("group_memberships")
+        .select("*")
+        .eq("group_id", group_id)
+        .eq("user_id", user.id)
+        .single();
+
+      if (membershipCheckError || !currentMembership) {
+        return new Response("Only group members can add others", {
+          status: 403,
+        });
       }
-    );
+
+      // Check if target user is already a member
+      const { data: existingMembership } = await supabase
+        .from("group_memberships")
+        .select("*")
+        .eq("group_id", group_id)
+        .eq("user_id", targetUserId)
+        .single();
+
+      if (existingMembership) {
+        return new Response("User already in group", { status: 400 });
+      }
+
+      // Add the target user to the group
+      const { error } = await supabase
+        .from("group_memberships")
+        .insert({ 
+          group_id, 
+          user_id: targetUserId,
+          role: 'member' // Add role field if your table has it
+        });
+
+      if (error) {
+        console.error("Error adding member:", error);
+        return new Response("Failed to add member: " + error.message, { status: 500 });
+      }
+
+      return new Response("Member added", { status: 200 });
+    }
+
+    if (action === "remove-member") {
+      const targetUserId = await findUserId();
+
+      const { count, error: membershipCheckError } = await supabase
+        .from("group_memberships")
+        .select("*", { count: "exact", head: true })
+        .eq("group_id", group_id)
+        .eq("user_id", user.id);
+
+      if (membershipCheckError || count === 0) {
+        return new Response("Only group members can remove others", {
+          status: 403,
+        });
+      }
+
+      const { error } = await supabase
+        .from("group_memberships")
+        .delete()
+        .eq("group_id", group_id)
+        .eq("user_id", targetUserId);
+
+      if (error) throw error;
+      return new Response("Member removed", { status: 200 });
+    }
+
+    if (action === "create-invite") {
+      const { count, error: membershipCheckError } = await supabase
+        .from("group_memberships")
+        .select("*", { count: "exact", head: true })
+        .eq("group_id", group_id)
+        .eq("user_id", user.id);
+
+      if (membershipCheckError || count === 0) {
+        return new Response("Only group members can create invites", {
+          status: 403,
+        });
+      }
+
+      const token = crypto.randomUUID();
+
+      const { data, error } = await supabase
+        .from("invite_links")
+        .insert({
+          token,
+          group_id,
+          created_by: user.id,
+          expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2), // 2 days
+          max_uses: 5,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ invite: data }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response("Invalid action", { status: 400 });
+  } catch (err) {
+    console.error(err);
+    return new Response("Server error: " + (err as Error).message, {
+      status: 500,
+    });
   }
 });

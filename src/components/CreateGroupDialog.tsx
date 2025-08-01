@@ -61,20 +61,20 @@ export const CreateGroupDialog = ({ onGroupCreated }: CreateGroupDialogProps) =>
         throw new Error('No group data returned');
       }
 
-      // Add creator as admin member
+      // Add creator as member (no admin role needed)
       const { error: membershipError } = await supabase
         .from('group_memberships')
         .insert({
           group_id: group.id,
           user_id: user.id,
-          role: 'admin'
+          role: 'member' // Changed from 'admin' to 'member'
         });
 
       if (membershipError) {
         console.error('Membership error:', membershipError);
         // Clean up the group if membership creation fails
         await supabase.from('groups').delete().eq('id', group.id);
-        throw new Error('Failed to add you as group admin');
+        throw new Error('Failed to add you as group member');
       }
 
       console.log('Group and membership created successfully:', group);
