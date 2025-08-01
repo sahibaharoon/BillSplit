@@ -19,7 +19,7 @@ BillSplit is a modern web application designed to simplify group expense managem
 
 ### 💻 Frontend
 - **React.js** — Functional, component-based UI.
-- **TailwindCSS** *(optional)* — For modern, responsive styling.
+- **TailwindCSS**  — For modern, responsive styling.
 - **React Router** — Client-side routing.
 
 ### 🔙 Backend
